@@ -71,4 +71,4 @@ def grid_search_models(train_and_val_data, privileged_groups=[{'DIS': 1}], unpri
             new_result  = pd.DataFrame([[C, solver, mean_accuracy, mean_eod]], columns=['C', 'Solver','Mean accuracy', 'Mean EOD'])
             results = pd.concat([results, new_result], ignore_index=True)
 
-            return results
+    return results
