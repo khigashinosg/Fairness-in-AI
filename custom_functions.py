@@ -5,9 +5,10 @@ from sklearn.preprocessing import StandardScaler
 from aif360.metrics import ClassificationMetric
 from aif360.algorithms.preprocessing import Reweighing
 import joblib
+import matplotlib.pyplot as plt
 
 # Function to perform grid search for the best models, exports the best models
-def grid_search_models(train_and_val_data, privileged_groups=[{'DIS': 1}], unprivileged_groups=[{'DIS': 2}], reweight=False, custom_criterion_style='sum_of_squares'):
+def grid_search_models(train_and_val_data, privileged_groups=[{'DIS': 1}], unprivileged_groups=[{'DIS': 2}], reweight=False, custom_criterion_style='weighted_with_penalty'):
     print("reweight =", reweight)
     
     # Set up loop for hyperparameter tuning/exploration (C, regularisation strength)
@@ -101,14 +102,13 @@ def grid_search_models(train_and_val_data, privileged_groups=[{'DIS': 1}], unpri
 def find_best_results(results):
     # Find highest accuracy, lowest EOD, and highest custom criterion
     highest_accuracy = results['Mean accuracy'].max()
-    lowest_eod = results['Mean EOD'].min() 
+    lowest_eod = results['Mean EOD'].abs().min() 
 
     # Find lowest EOD that is not 0
     lowest_nonzero_eod = results.loc[results['Mean EOD'] != 0]['Mean EOD'].abs().min()
     
     # Find highest custom criterion (Task 3)
     highest_custom_criterion = results['Mean custom criterion'].max()
-
 
     # Find the corresponding C and solver values
     best_accuracy = results.loc[results['Mean accuracy'] == highest_accuracy]
@@ -185,5 +185,38 @@ def calc_custom_criterion(accuracy, eod, style):
         custom_criterion = accuracy**2 + fairness**2
     elif style == 'sum_of_logs':
         custom_criterion = np.log(accuracy) + np.log(fairness)
+    elif style == 'weighted':
+        custom_criterion = (2*accuracy - 1) + fairness
+    elif style == 'weighted_with_penalty':
+        custom_criterion = max(0,(2*accuracy - 1)) + fairness - (abs(accuracy - fairness))
     
     return custom_criterion
+
+def plot_results(dataset, metric, save_pathname):
+
+    # Assuming df is your DataFrame with the data
+    fig, ax = plt.subplots()
+
+    # Set labels and title
+    ax.set_xlabel('C')
+    
+    ax.set_title('Accuracy vs C for different solvers')
+
+    # Group by 'Solver' and plot each group
+    for solver, group in dataset.groupby('Solver'):
+        if metric == 'accuracy':
+            ax.plot(group['C'], group['Mean accuracy'], label=solver)
+            ax.set_ylabel('Mean Accuracy')
+        elif metric == 'eod':
+            ax.plot(group['C'], group['Mean EOD'], label=solver)
+            ax.set_ylabel('Mean EOD')
+
+    # Display legend
+    ax.legend()
+
+    # Show the plot
+    plt.show()
+    
+    # export the plot to a png file
+    fig.savefig(save_pathname)
+
