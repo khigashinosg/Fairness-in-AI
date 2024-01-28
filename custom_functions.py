@@ -151,7 +151,7 @@ def find_best_results(results):
     
 #     return best_accuracy_accuracy, best_accuracy_eod, best_eod_accuracy, best_eod_eod
 
-def test_model(test_data, model_pathname, privileged_groups=[{'DIS': 1}], unprivileged_groups=[{'DIS': 2}]):
+def test_model(test_data, model_pathname, custom_criterion, privileged_groups=[{'DIS': 1}], unprivileged_groups=[{'DIS': 2}]):
         # Load the best model
     model = joblib.load(model_pathname)
 
@@ -170,7 +170,7 @@ def test_model(test_data, model_pathname, privileged_groups=[{'DIS': 1}], unpriv
     metrics = ClassificationMetric(test_data, results, unprivileged_groups=unprivileged_groups, privileged_groups=privileged_groups)
     accuracy = metrics.accuracy()
     eod = metrics.equal_opportunity_difference()
-    custom_criterion = calc_custom_criterion(accuracy, eod, 'sum_of_squares')
+    custom_criterion = calc_custom_criterion(accuracy, eod, custom_criterion)
     
     return accuracy, eod, custom_criterion
     
@@ -192,15 +192,14 @@ def calc_custom_criterion(accuracy, eod, style):
     
     return custom_criterion
 
-def plot_results(dataset, metric, save_pathname):
+def plot_results(dataset, metric, title, save_pathname):
 
     # Assuming df is your DataFrame with the data
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 2.5))
 
     # Set labels and title
     ax.set_xlabel('C')
-    
-    ax.set_title('Accuracy vs C for different solvers')
+    ax.set_title(title)
 
     # Group by 'Solver' and plot each group
     for solver, group in dataset.groupby('Solver'):
@@ -211,12 +210,16 @@ def plot_results(dataset, metric, save_pathname):
             ax.plot(group['C'], group['Mean EOD'], label=solver)
             ax.set_ylabel('Mean EOD')
 
-    # Display legend
+    # Display legend and grod
     ax.legend()
-
+    ax.grid()
+    
+    # Set logarithmic scale on the x-axis
+    ax.set_xscale('log')
+    
     # Show the plot
     plt.show()
-    
+
     # export the plot to a png file
     fig.savefig(save_pathname)
 
